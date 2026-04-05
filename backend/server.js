@@ -1,7 +1,9 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const dotenv = require("dotenv");
 
+dotenv.config();
 const app = express();
 
 app.use(cors());
@@ -16,11 +18,11 @@ const workerRoutes = require("./routes/workerRoutes");
 app.use("/api", workerRoutes);
 
 // MongoDB Connection
-mongoose.connect("mongodb+srv://jangilivamshi:12345@cluster0.twzsf93.mongodb.net/?appName=Cluster0")
+mongoose.connect(process.env.MONGO_URI)
 .then(() => console.log("MongoDB Connected"))
 .catch(err => console.log(err));
 
 // Server
 app.listen(5000, () => {
-  console.log("Server running on port 5000");
+  console.log("Server running on port " + (process.env.PORT || 5000));
 });

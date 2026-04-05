@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Booking = require("../models/Booking");
 
-// 
+// Get all bookings for a service type
 router.get("/requests/:serviceType", async (req, res) => {
   try {
     const type = req.params.serviceType;
@@ -26,7 +26,7 @@ router.post("/book", async (req, res) => {
 
     await booking.save();
 
-    res.json({ message: "Booking Request Sent" });
+    res.json({ message: "Booking Request Sent", booking });
   } catch (err) {
     res.status(500).json(err);
   }
@@ -47,14 +47,32 @@ router.get("/worker-requests/:workerId", async (req, res) => {
 });
 
 // Update booking status (accept/reject)
-router.put("/update/:id", async (req, res) => {
+router.put("/booking/statusUpdate/:workerId", async (req, res) => {
   try {
-    await Booking.findByIdAndUpdate(req.params.id, {
-      status: req.body.status
-    });
+    const { bookingId, status } = req.body;
 
-    res.json({ message: "Status Updated" });
+    if (!bookingId || !status) {
+      return res.status(400).json({ message: "bookingId and status are required" });
+    }
+
+    const booking = await Booking.findById(bookingId);
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    if (booking._id.toString() !== req.params.workerId) {
+      return res.status(403).json({ message: "Unauthorized worker" });
+    }
+
+    const updatedBooking = await Booking.findByIdAndUpdate(
+      bookingId,
+      { status },
+      { new: true }
+    );
+
+    res.json({ message: "Status Updated", booking: updatedBooking });
   } catch (err) {
+    console.log(err);
     res.status(500).json(err);
   }
 });

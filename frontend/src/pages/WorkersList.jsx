@@ -1,5 +1,5 @@
 import { useLocation } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 
 function WorkersList() {
@@ -7,25 +7,45 @@ function WorkersList() {
   const query = new URLSearchParams(location.search);
   const serviceType = query.get("type") || "general";
 
-  const [workers] = useState([
-    { name: "Ravi", experience: "5 years" },
-    { name: "Suresh", experience: "3 years" }
-  ]);
+  const [workers, setWorkers] = useState([]);
   const [message, setMessage] = useState("");
 
-  const handleBooking = async (workerName) => {
+  // 🔥 Fetch workers from backend
+  useEffect(() => {
+    const fetchWorkers = async () => {
+      try {
+        const res = await axios.get(
+          `http://localhost:5000/api/workers?type=${serviceType}`
+        );
+        setWorkers(res.data);
+      } catch (err) {
+        console.log(err);
+      }
+    };
+
+    fetchWorkers();
+  }, [serviceType]);
+
+  // 🔥 Booking
+  const handleBooking = async (workerId) => {
     try {
-      const userName = "Demo User";
-      const response = await axios.post("http://localhost:5000/api/bookings", {
-        userName,
-        workerName,
+      const userId = localStorage.getItem("userId"); // later set in login
+
+      const res = await axios.post("http://localhost:5000/api/book", {
+        userId,
+        workerId,
         serviceType
       });
-      setMessage(`Booking confirmed with ${workerName} for ${serviceType}.`);
-      console.log("Booking saved", response.data);
-    } catch (error) {
-      console.error("Booking failed", error);
-      setMessage("Booking failed. Try again.");
+
+      const booking = res.data.booking;
+
+      setMessage(
+      `Booking sent ✅ | Status: ${booking.status}`
+    );
+      console.log(res.data);
+    } catch (err) {
+      console.log(err);
+      setMessage("Booking failed ❌");
     }
   };
 
@@ -34,14 +54,22 @@ function WorkersList() {
       <h2>Available {serviceType} Workers</h2>
       <p>{message}</p>
 
-      {workers.map((w, index) => (
-        <div key={index} style={{ padding: "10px" }}>
-          <h3>{w.name}</h3>
-          <p>{w.experience}</p>
-          <button onClick={() => handleBooking(w.name)}>Book Now</button>
-          <hr />
-        </div>
-      ))}
+      {workers.length === 0 ? (
+        <p>No workers available</p>
+      ) : (
+        workers.map((w) => (
+          <div key={w._id} style={{ padding: "10px" }}>
+            <h3>{w.name}</h3>
+            <p>Service: {w.serviceType}</p>
+            <p>Location: {w.location}</p>
+
+            <button onClick={() => handleBooking(w._id)}>
+              Request 
+            </button>
+            <hr />
+          </div>
+        ))
+      )}
     </div>
   );
 }
